@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  mcpfabric:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcpfabric
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Add your MCP server here
+  # mcp-server:
+  #   image: your-mcp-server:latest
+  #   container_name: mcp-server
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - PORT=8080
+  #   restart: unless-stopped
+
+networks:
+  default:
+    name: mcpfabric-network
