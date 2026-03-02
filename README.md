@@ -95,6 +95,7 @@ Key environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `VITE_FABRIC_API_BASE` | Fabric backend base URL for admin/docs pages | `https://fabric.perceptor.us` |
 | `VITE_MCP_SERVER_URL` | MCP server endpoint | `http://localhost:8080` |
 | `VITE_SSE_URL` | SSE stream endpoint | `http://localhost:8080/stream` |
 | `VITE_DEFAULT_TENANT` | Default tenant ID | `tenant-1` |
@@ -131,6 +132,8 @@ app/
 | `/observatory` | Agent mesh visualization |
 | `/console` | Real-time event stream dashboard |
 | `/playground` | Interactive MCP client tester |
+| `/api-keys` | Live key creation/list/revoke against `/admin/*` |
+| `/docs` | Docs hub with Swagger and SDK links |
 
 ## Customization
 

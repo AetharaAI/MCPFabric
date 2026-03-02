@@ -6,6 +6,8 @@ import { Registry } from '@/pages/Registry';
 import { Observatory } from '@/pages/Observatory';
 import { Console } from '@/pages/Console';
 import { Playground } from '@/pages/Playground';
+import { ApiKeys } from '@/pages/ApiKeys';
+import { Docs } from '@/pages/Docs';
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           <Route path="/observatory" element={<Observatory />} />
           <Route path="/console" element={<Console />} />
           <Route path="/playground" element={<Playground />} />
+          <Route path="/api-keys" element={<ApiKeys />} />
+          <Route path="/docs" element={<Docs />} />
         </Routes>
         <Footer />
       </div>

@@ -7,12 +7,13 @@ const footerLinks = {
     { label: 'Observatory', href: '/observatory' },
     { label: 'Console', href: '/console' },
     { label: 'Playground', href: '/playground' },
+    { label: 'API Keys', href: '/api-keys' },
   ],
   docs: [
-    { label: 'Getting Started', href: '#' },
-    { label: 'API Reference', href: '#' },
-    { label: 'MCP Protocol', href: '#' },
-    { label: 'Deployment', href: '#' },
+    { label: 'Docs Hub', href: '/docs', external: false },
+    { label: 'Swagger API', href: 'https://fabric.perceptor.us/docs', external: true },
+    { label: 'OpenAPI JSON', href: 'https://fabric.perceptor.us/openapi.json', external: true },
+    { label: 'Python SDK (PyPI)', href: 'https://pypi.org/project/fabric-a2a/', external: true },
   ],
   community: [
     { label: 'GitHub', href: 'https://github.com', external: true },
@@ -84,12 +85,23 @@ export function Footer() {
             <ul className="space-y-3">
               {footerLinks.docs.map((link) => (
                 <li key={link.label}>
-                  <a 
-                    href={link.href}
-                    className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    {link.label}
-                  </a>
+                  {link.external ? (
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={link.href}
+                      className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

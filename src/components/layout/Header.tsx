@@ -7,7 +7,9 @@ import {
   Telescope, 
   Terminal, 
   Play,
-  Cpu
+  Cpu,
+  BookOpen,
+  KeyRound
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TenantSwitcher } from '@/components/custom/TenantSwitcher';
@@ -24,6 +26,8 @@ const navItems = [
   { path: '/observatory', label: 'Observatory', icon: Telescope },
   { path: '/console', label: 'Console', icon: Terminal },
   { path: '/playground', label: 'Playground', icon: Play },
+  { path: '/api-keys', label: 'API Keys', icon: KeyRound },
+  { path: '/docs', label: 'Docs', icon: BookOpen },
 ];
 
 export function Header() {
