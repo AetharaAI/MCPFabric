@@ -6,6 +6,7 @@ import { AnimatedGrid } from '@/components/custom/AnimatedGrid';
 import { GlowButton } from '@/components/custom/GlowButton';
 import { useCountUp } from '@/hooks/useCountUp';
 import { statsData } from '@/lib/mock-data';
+import stackedWordmark from '../../logos/logo/mcp-wordmark-512.png';
 
 function StatCard({ value, label, suffix = '' }: { value: number; label: string; suffix?: string }) {
   const count = useCountUp({ end: value, duration: 2000, delay: 800 });
@@ -64,9 +65,16 @@ export function Hero() {
         >
           {/* Badge */}
           <motion.div variants={itemVariants} className="mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-sm text-purple-400">
-              <Zap className="w-4 h-4" />
-              Now with Async-First Architecture
+            <span className="inline-flex items-center gap-3 rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2.5 text-sm text-cyan-200 shadow-[0_0_30px_rgba(34,211,238,0.12)]">
+              <img
+                src={stackedWordmark}
+                alt="MCP Fabric stacked wordmark"
+                className="h-10 w-auto object-contain sm:h-12"
+              />
+              <span className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-cyan-300" />
+                <span>Now with Async-First Architecture</span>
+              </span>
             </span>
           </motion.div>
 

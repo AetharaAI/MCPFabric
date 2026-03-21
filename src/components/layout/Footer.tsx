@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Cpu, Github, Twitter, MessageCircle } from 'lucide-react';
+import { Github, Twitter, MessageCircle } from 'lucide-react';
+import brandSymbol from '../../../logos/logo/mcp-symbol-64.png';
+import brandHeader from '../../../logos/header/mcp-header-800.png';
 
 const footerLinks = {
   product: [
@@ -29,11 +31,20 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <Cpu className="w-6 h-6 text-purple-400" />
-              <span className="text-lg font-semibold text-zinc-100">
-                MCP<span className="text-purple-400">Fabric</span>
-              </span>
+            <Link to="/" className="group mb-4 flex items-center gap-3">
+              <div className="relative">
+                <img
+                  src={brandSymbol}
+                  alt="MCP Fabric symbol"
+                  className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-lg opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+              <img
+                src={brandHeader}
+                alt="MCP Fabric"
+                className="h-8 w-auto object-contain"
+              />
             </Link>
             <p className="text-sm text-zinc-500 mb-6">
               Control fabric for agent systems. Deploy, observe, and orchestrate MCP servers at scale.

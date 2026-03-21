@@ -19,7 +19,7 @@ import { StatusIndicator } from '@/components/custom/StatusIndicator';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/auth/AuthContext';
-import brandSymbol from '../../../logos/logo/mcp-symbol-256.png';
+import brandSymbol from '../../../logos/logo/mcp-symbol-64.png';
 import brandHeader from '../../../logos/header/mcp-header-800.png';
 
 const navItems = [
