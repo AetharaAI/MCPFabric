@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Check,
   Copy,
+  ExternalLink,
   Eye,
   EyeOff,
   KeyRound,
@@ -35,10 +36,14 @@ import {
   type FabricKeySummary,
   type KeyScope,
 } from "@/lib/fabric-admin-api";
+import {
+  loadFabricSession,
+  persistAdminKey,
+  persistBaseUrl,
+  persistOperatorKey,
+} from "@/lib/fabric-session";
 import { cn } from "@/lib/utils";
-
-const STORAGE_BASE_URL = "mcpfabric.api.base_url";
-const STORAGE_ADMIN_KEY = "mcpfabric.api.admin_key";
+import { useAuth } from "@/auth/AuthContext";
 
 const scopeOptions: Array<{ value: KeyScope; label: string; help: string }> = [
   { value: "full", label: "Full", help: "All Fabric tool + message operations." },
@@ -63,10 +68,13 @@ function maskToken(token: string): string {
 }
 
 export function ApiKeys() {
+  const { isAuthenticated, isLoading, login, session } = useAuth();
   const [baseUrl, setBaseUrl] = useState(getDefaultBaseUrl());
   const [adminKey, setAdminKey] = useState("");
   const [showAdminKey, setShowAdminKey] = useState(false);
   const [rememberAdminKey, setRememberAdminKey] = useState(false);
+  const [ownerFilter, setOwnerFilter] = useState("");
+  const [allowedAgentsInput, setAllowedAgentsInput] = useState("");
 
   const [verifyResult, setVerifyResult] = useState<AdminVerifyResponse | null>(null);
   const [keys, setKeys] = useState<FabricKeySummary[]>([]);
@@ -94,15 +102,11 @@ export function ApiKeys() {
   });
 
   useEffect(() => {
-    const savedBaseUrl = localStorage.getItem(STORAGE_BASE_URL);
-    const savedAdminKey = sessionStorage.getItem(STORAGE_ADMIN_KEY);
+    const savedSession = loadFabricSession(getDefaultBaseUrl());
+    setBaseUrl(savedSession.baseUrl);
 
-    if (savedBaseUrl) {
-      setBaseUrl(savedBaseUrl);
-    }
-
-    if (savedAdminKey) {
-      setAdminKey(savedAdminKey);
+    if (savedSession.adminKey) {
+      setAdminKey(savedSession.adminKey);
       setRememberAdminKey(true);
     }
   }, []);
@@ -113,6 +117,10 @@ export function ApiKeys() {
   );
 
   async function runVerify() {
+    if (!isAuthenticated) {
+      setError("Sign in with Passport before using audited admin key workflows.");
+      return;
+    }
     if (!hasAdminInput) {
       setError("Set API Base URL and Admin Key first.");
       return;
@@ -135,6 +143,10 @@ export function ApiKeys() {
   }
 
   async function runListKeys() {
+    if (!isAuthenticated) {
+      setError("Sign in with Passport before using audited admin key workflows.");
+      return;
+    }
     if (!hasAdminInput) {
       setError("Set API Base URL and Admin Key first.");
       return;
@@ -145,7 +157,7 @@ export function ApiKeys() {
     setIsLoadingKeys(true);
 
     try {
-      const result = await listKeys(baseUrl, adminKey.trim());
+      const result = await listKeys(baseUrl, adminKey.trim(), ownerFilter.trim() || undefined);
       setKeys(result);
       setNotice(`Loaded ${result.length} key(s).`);
     } catch (err) {
@@ -156,6 +168,10 @@ export function ApiKeys() {
   }
 
   async function runCreateKey() {
+    if (!isAuthenticated) {
+      setError("Sign in with Passport before using audited admin key workflows.");
+      return;
+    }
     if (!hasAdminInput) {
       setError("Set API Base URL and Admin Key first.");
       return;
@@ -175,6 +191,10 @@ export function ApiKeys() {
         name: form.name.trim(),
         owner_id: form.owner_id.trim(),
         expires_in_days: form.expires_in_days || null,
+        allowed_agents: allowedAgentsInput
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean),
       };
       const result = await createKey(baseUrl, adminKey.trim(), payload);
       setLatestCreated(result);
@@ -188,6 +208,10 @@ export function ApiKeys() {
   }
 
   async function runRevokeKey(keyId: string) {
+    if (!isAuthenticated) {
+      setError("Sign in with Passport before using audited admin key workflows.");
+      return;
+    }
     if (!hasAdminInput) {
       setError("Set API Base URL and Admin Key first.");
       return;
@@ -209,13 +233,23 @@ export function ApiKeys() {
   }
 
   function persistConnectionSettings() {
-    localStorage.setItem(STORAGE_BASE_URL, baseUrl.trim());
+    persistBaseUrl(baseUrl);
     if (rememberAdminKey) {
-      sessionStorage.setItem(STORAGE_ADMIN_KEY, adminKey.trim());
+      persistAdminKey(adminKey);
     } else {
-      sessionStorage.removeItem(STORAGE_ADMIN_KEY);
+      persistAdminKey(null);
     }
     setNotice("Connection settings saved for this browser.");
+  }
+
+  function useLatestKeyInOperatorUi() {
+    if (!latestCreated?.key) {
+      return;
+    }
+
+    persistBaseUrl(baseUrl);
+    persistOperatorKey(latestCreated.key);
+    setNotice("New key copied into the Operator Playground session.");
   }
 
   async function copyLatestKey() {
@@ -301,10 +335,10 @@ export function ApiKeys() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <Button onClick={runVerify} disabled={isVerifying || !hasAdminInput}>
+              <Button onClick={runVerify} disabled={isVerifying || !hasAdminInput || !isAuthenticated}>
                 {isVerifying ? "Verifying..." : "Verify"}
               </Button>
-              <Button variant="secondary" onClick={runListKeys} disabled={isLoadingKeys || !hasAdminInput}>
+              <Button variant="secondary" onClick={runListKeys} disabled={isLoadingKeys || !hasAdminInput || !isAuthenticated}>
                 {isLoadingKeys ? "Loading..." : "List Keys"}
               </Button>
             </div>
@@ -312,6 +346,37 @@ export function ApiKeys() {
             <Button variant="outline" className="w-full" onClick={persistConnectionSettings}>
               Save Connection Settings
             </Button>
+
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <div className="text-sm font-medium text-zinc-200">Passport Session</div>
+              {isLoading ? (
+                <p className="mt-2 text-sm text-zinc-500">Checking sign-in state...</p>
+              ) : isAuthenticated ? (
+                <div className="mt-2 space-y-1 text-sm text-zinc-400">
+                  <p>signed in as <span className="text-zinc-200">{session?.user.preferred_username || session?.user.email || session?.user.name || "user"}</span></p>
+                  <p className="text-xs text-zinc-500">API key creation remains guest-visible but action-gated for signed-in users only.</p>
+                </div>
+              ) : (
+                <div className="mt-2 space-y-3">
+                  <p className="text-sm text-zinc-400">
+                    Sign in with Passport before using API key workflows. Guest browsing stays open.
+                  </p>
+                  <Button variant="secondary" className="w-full" onClick={() => void login("/api-keys")}>
+                    Sign In To Manage Keys
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="owner-filter">Owner Filter</Label>
+              <Input
+                id="owner-filter"
+                value={ownerFilter}
+                onChange={(e) => setOwnerFilter(e.target.value)}
+                placeholder="Optional owner_id for list keys"
+              />
+            </div>
 
             {verifyResult && (
               <div className="rounded-lg border border-teal-500/30 bg-teal-500/10 p-3 text-sm">
@@ -433,6 +498,18 @@ export function ApiKeys() {
                     />
                   </div>
                 </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="allowed-agents">Allowed Agents</Label>
+                  <Input
+                    id="allowed-agents"
+                    value={allowedAgentsInput}
+                    onChange={(e) => setAllowedAgentsInput(e.target.value)}
+                    placeholder="agent-alpha, gateway-prod-1"
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Optional comma-separated agent IDs. Leave blank for all agents.
+                  </p>
+                </div>
               </div>
 
               <div className="mt-5">
@@ -447,6 +524,11 @@ export function ApiKeys() {
                   )}
                 </Button>
               </div>
+              {!isAuthenticated && (
+                <p className="mt-3 text-xs text-amber-300">
+                  Sign in with Passport first. API key creation is intentionally blocked for guests.
+                </p>
+              )}
             </div>
 
             {latestCreated && (
@@ -473,6 +555,12 @@ export function ApiKeys() {
                     {copied ? "Copied" : "Copy"}
                   </Button>
                 </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={useLatestKeyInOperatorUi}>
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Use In Operator Playground
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -484,6 +572,11 @@ export function ApiKeys() {
                   Refresh
                 </Button>
               </div>
+              {!isAuthenticated && (
+                <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+                  Sign in with Passport to load, create, and revoke keys.
+                </div>
+              )}
 
               {keys.length === 0 ? (
                 <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-6 text-center text-zinc-500">
@@ -513,6 +606,11 @@ export function ApiKeys() {
                         <div className="text-xs text-zinc-500">
                           last_used={key.last_used_at ? new Date(key.last_used_at).toLocaleString() : "never"}
                         </div>
+                        {key.allowed_agents.length > 0 && (
+                          <div className="text-xs text-zinc-500">
+                            allowed_agents={key.allowed_agents.join(", ")}
+                          </div>
+                        )}
                       </div>
                       <Button
                         variant="ghost"

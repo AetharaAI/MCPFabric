@@ -8,6 +8,7 @@ import { Console } from '@/pages/Console';
 import { Playground } from '@/pages/Playground';
 import { ApiKeys } from '@/pages/ApiKeys';
 import { Docs } from '@/pages/Docs';
+import { OAuthCallback } from '@/pages/OAuthCallback';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/console" element={<Console />} />
           <Route path="/playground" element={<Playground />} />
           <Route path="/api-keys" element={<ApiKeys />} />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
           <Route path="/docs" element={<Docs />} />
         </Routes>
         <Footer />

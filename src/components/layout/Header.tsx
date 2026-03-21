@@ -7,18 +7,20 @@ import {
   Telescope, 
   Terminal, 
   Play,
-  Cpu,
   BookOpen,
-  KeyRound
+  KeyRound,
+  LogIn,
+  LogOut,
+  UserCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TenantSwitcher } from '@/components/custom/TenantSwitcher';
-import { ShredderBadge } from '@/components/custom/ShredderBadge';
+import { FabricTelemetryBadge } from '@/components/custom/FabricTelemetryBadge';
 import { StatusIndicator } from '@/components/custom/StatusIndicator';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { mockTenants, mockShredderStatus } from '@/lib/mock-data';
-import { useAppStore } from '@/store/useAppStore';
+import { useAuth } from '@/auth/AuthContext';
+import brandSymbol from '../../../logos/logo/mcp-symbol-256.png';
+import brandHeader from '../../../logos/header/mcp-header-800.png';
 
 const navItems = [
   { path: '/', label: 'Home', icon: Box },
@@ -33,7 +35,7 @@ const navItems = [
 export function Header() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { currentTenant, setCurrentTenant } = useAppStore();
+  const { session, isAuthenticated, login, logout } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16">
@@ -47,12 +49,18 @@ export function Header() {
             className="flex items-center gap-2 group"
           >
             <div className="relative">
-              <Cpu className="w-7 h-7 text-purple-400 transition-all duration-300 group-hover:text-purple-300" />
+              <img
+                src={brandSymbol}
+                alt="MCP Fabric symbol"
+                className="w-8 h-8 object-contain transition-all duration-300 group-hover:scale-[1.03]"
+              />
               <div className="absolute inset-0 blur-lg bg-purple-500/30 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="text-lg font-semibold text-zinc-100">
-              MCP<span className="text-purple-400">Fabric</span>
-            </span>
+            <img
+              src={brandHeader}
+              alt="MCP Fabric"
+              className="h-7 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -82,21 +90,33 @@ export function Header() {
 
           {/* Right Section */}
           <div className="hidden md:flex items-center gap-4">
-            <TenantSwitcher 
-              tenants={mockTenants}
-              currentTenant={currentTenant || mockTenants[0]}
-              onChange={setCurrentTenant}
-            />
-            
-            <div className="h-6 w-px bg-zinc-800" />
-            
-            <ShredderBadge status={mockShredderStatus} />
+            <FabricTelemetryBadge />
             
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30">
               <StatusIndicator status="online" size="sm" pulse={false} />
               <Activity className="w-4 h-4 text-teal-400" />
               <span className="text-sm text-teal-400">Live</span>
             </div>
+
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300">
+                  <UserCircle2 className="w-4 h-4 text-cyan-300" />
+                  <span className="text-sm">
+                    {session?.user.preferred_username || session?.user.email || session?.user.name || 'Signed In'}
+                  </span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => void logout()}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => void login()}>
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -111,15 +131,39 @@ export function Header() {
               className="w-72 bg-zinc-950 border-zinc-800"
             >
               <div className="flex flex-col gap-6 mt-8">
-                <TenantSwitcher 
-                  tenants={mockTenants}
-                  currentTenant={currentTenant || mockTenants[0]}
-                  onChange={(tenant) => {
-                    setCurrentTenant(tenant);
-                    setMobileOpen(false);
-                  }}
-                  className="w-full justify-start"
-                />
+                <FabricTelemetryBadge className="w-full justify-center" />
+
+                {isAuthenticated ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3 text-zinc-200">
+                      <UserCircle2 className="w-5 h-5 text-cyan-300" />
+                      <span>{session?.user.preferred_username || session?.user.email || session?.user.name || 'Signed In'}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        void logout();
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      void login();
+                    }}
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </Button>
+                )}
                 
                 <nav className="flex flex-col gap-2">
                   {navItems.map((item) => {
@@ -143,10 +187,6 @@ export function Header() {
                     );
                   })}
                 </nav>
-                
-                <div className="pt-4 border-t border-zinc-800">
-                  <ShredderBadge status={mockShredderStatus} className="w-full justify-center" />
-                </div>
               </div>
             </SheetContent>
           </Sheet>
