@@ -1,47 +1,48 @@
 # CHANGELOG.md
 
+## 2026-03-21
+
+### Repo alignment
+- Merged the MCPFabric working branch into `main`.
+- Preserved the `logos` commit history while merging the Codex live-ops/auth/frontend work.
+- Pushed the merged `main` branch to `origin`.
+
+### Production branding
+- Replaced generic placeholder header branding with curated MCPFabric assets.
+- Replaced generic placeholder footer branding with curated MCPFabric assets.
+- Wired favicon and Apple touch icon to the production build.
+- Updated the hero badge to place the stacked MCPFabric wordmark beside the async-first message.
+- Switched the header symbol asset to `mcp-symbol-64.png` while keeping the rendered size compact.
+
+### Production auth and operator UX
+- Added Passport OIDC login through the Syndicate realm using discovery and PKCE.
+- Added callback handling at `/oauth/callback`.
+- Added Passport logout flow back to `/`.
+- Kept guest browsing open while gating API key workflows behind sign-in.
+- Added live API key management and operator bootstrap flows.
+- Added live Playground actions against the Fabric backend.
+- Replaced mock Console activity with real operator-side actions and queue/message interactions.
+- Replaced the fake header telemetry/shredder state with live backend health telemetry.
+
+### Deployment
+- Built and published the current branded frontend bundle to `/var/www/mcpfabric`.
+- Verified `https://mcpfabric.space` is serving:
+  - `index-Ct05Cxis.js`
+  - `index-DF5WYZ_K.css`
+
+### Documentation system
+- Elevated `AGENTS.md`, `PROJECT_STATE.md`, `CHANGELOG.md`, and `TRUTH.md` to canonical status.
+- Added a reusable `TRUTH/` template system for standardized project documentation across production systems.
+
 ## 2026-03-20
 
 ### Frontend live conversion
 - Added shared frontend session helpers for base URL, admin key, and operator key persistence.
 - Added live MCP API client for backend verification, health, discovery, agent detail, and `/mcp/call`.
-- Expanded API Keys page to support:
-  - owner filter on key listing
-  - `allowed_agents` on key creation
-  - operator bootstrap from a newly created key
+- Expanded API Keys page to support owner filtering, `allowed_agents`, and operator bootstrap from a newly created key.
 - Replaced mocked Playground execution with live operator actions against the Fabric backend.
-- Added built-in operator request templates for:
-  - `fabric.tool.math.calculate`
-  - `fabric.message.send`
-  - `fabric.message.queue_status`
-
-### Build and deploy
-- Fixed production build path by limiting the inspect plugin to Vite dev/serve mode.
-- Built the frontend successfully with `npm run build`.
-- Published the new frontend build into `/var/www/mcpfabric`.
-- Verified `https://mcpfabric.space` is serving the new bundle.
-
-### Findings
-- Admin key and scoped client key are valid.
-- UI `Failed to fetch` was caused by backend CORS/preflight, not expired keys.
+- Verified key/auth failures were not expiry-related and traced browser failure to backend CORS/preflight.
 
 ### Backend integration follow-up
-- Verified browser-style preflight now succeeds for:
-  - `/admin/verify`
-  - `/mcp/call`
-- Verified authorized cross-origin success responses now include `Access-Control-Allow-Origin: https://mcpfabric.space`.
-
-## 2026-03-21
-
-### Passport OIDC integration
-- Added Passport OIDC login integration for the Syndicate realm using the discovery endpoint.
-- Added SPA session handling using Authorization Code + PKCE.
-- Added callback handling at `/oauth/callback`.
-- Added Passport logout flow with post-logout redirect to `/`.
-- Added header login/logout controls while keeping guest browsing open.
-- Gated API key workflows behind active Passport sign-in.
-
-### Build-time auth safety
-- Exposed only safe Passport config values to the frontend bundle through Vite.
-- Verified the Passport client secret is not emitted into the built JS bundle.
-- Confirmed the live Syndicate discovery document is reachable.
+- Confirmed backend preflight success for `/admin/verify` and `/mcp/call`.
+- Confirmed authorized cross-origin success responses now include `Access-Control-Allow-Origin: https://mcpfabric.space`.
