@@ -30,6 +30,9 @@ Live and verified:
 - live console replacement for previous mock activity surface
 - live header telemetry badge replacing mock top-bar status
 - curated brand assets in header, footer, favicon, and hero badge
+- browser-visible auth trace logging across login, callback, token exchange, session save, and logout
+- callback page now shows redacted auth trace entries for debugging handshake failures
+- docs page now exposes Fabric A2A SDK install/use links and quick-start material
 
 ## Live Deploy Reality
 - current live JS bundle: `index-Ct05Cxis.js`

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
+  Download,
   ExternalLink,
   FileCode2,
   KeyRound,
@@ -33,8 +34,8 @@ const docsLinks = [
   },
   {
     title: "GitHub Repository",
-    description: "Source code for backend, SDK, and website.",
-    href: "https://github.com",
+    description: "Source code for backend platform, SDK, and integration docs.",
+    href: "https://github.com/AetharaAI/Fabric-A2A",
     icon: BookOpen,
   },
 ];
@@ -44,6 +45,13 @@ const adminEndpoints = [
   { method: "POST", path: "/admin/keys", details: "Create a new API key (shown once)." },
   { method: "GET", path: "/admin/keys", details: "List existing keys for owner or system." },
   { method: "DELETE", path: "/admin/keys/{key_id}", details: "Revoke a key." },
+];
+
+const sdkHighlights = [
+  "PyPI package name: fabric-a2a",
+  "Current backend repo SDK version file reports 0.1.0",
+  "Install command: pip install fabric-a2a",
+  "Primary auth input is a Fabric API key in Authorization: Bearer",
 ];
 
 export function Docs() {
@@ -140,6 +148,76 @@ export function Docs() {
                 </Button>
               </Link>
             </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.9fr] gap-6 mt-6">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Package className="w-4 h-4 text-cyan-300" />
+              <h2 className="text-zinc-100 font-semibold">Fabric A2A SDK</h2>
+            </div>
+            <p className="text-sm text-zinc-400">
+              The backend already contains a real pip-installable SDK under `sdk/python`. Current package metadata
+              reports version `0.1.0`, package name `fabric-a2a`, and the standard install path below.
+            </p>
+            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Install</p>
+              <pre className="mt-2 overflow-auto text-sm text-zinc-200">pip install fabric-a2a</pre>
+            </div>
+            <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Quick Start</p>
+              <pre className="mt-2 overflow-auto text-sm text-zinc-200">{`from fabric_a2a import FabricClient
+
+client = FabricClient(
+    base_url="https://fabric.perceptor.us",
+    token="fab_sk_live_your_api_key",
+)
+
+result = client.call(
+    "fabric.message.queue_status",
+    {"agent_id": "your-agent-id"},
+)
+
+print(result)
+client.close()`}</pre>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <a
+                href="https://pypi.org/project/fabric-a2a/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button className="w-full bg-cyan-600 hover:bg-cyan-500">
+                  <Download className="w-4 h-4 mr-2" />
+                  Open PyPI Package
+                </Button>
+              </a>
+              <a
+                href="https://github.com/AetharaAI/Fabric-A2A/blob/main/sdk/python/README.md"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" className="w-full">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Read SDK README
+                </Button>
+              </a>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <FileCode2 className="w-4 h-4 text-purple-400" />
+              <h2 className="text-zinc-100 font-semibold">SDK Notes</h2>
+            </div>
+            <ul className="space-y-3">
+              {sdkHighlights.map((item) => (
+                <li key={item} className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       </div>

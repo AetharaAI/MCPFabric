@@ -7,6 +7,7 @@ import {
   loadPassportSession,
   type PassportSession,
 } from "@/lib/passport-auth";
+import { logAuthTrace } from "@/lib/auth-trace";
 
 interface AuthContextValue {
   session: PassportSession | null;
@@ -24,23 +25,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    logAuthTrace("auth-context", "Initializing auth context");
     setSession(loadPassportSession());
     setIsLoading(false);
+    logAuthTrace("auth-context", "Auth context initialized");
   }, []);
 
   async function login(returnTo?: string) {
+    logAuthTrace("auth-context", "Login requested", { returnTo });
     await beginPassportLogin(returnTo);
   }
 
   async function logout() {
     const current = session;
+    logAuthTrace("auth-context", "Logout requested", {
+      hasSession: Boolean(current),
+      subject: current?.user.sub,
+    });
     setSession(null);
     await beginPassportLogout(current);
   }
 
   async function finishCallback(callbackUrl: string) {
+    logAuthTrace("auth-context", "Finishing callback", { callbackUrl });
     const result = await completePassportLogin(callbackUrl);
     setSession(result.session);
+    logAuthTrace("auth-context", "Callback finished", {
+      returnTo: result.returnTo,
+      subject: result.session.user.sub,
+    });
     return result.returnTo;
   }
 
@@ -52,6 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session.expiresAt <= Date.now()) {
       clearPassportSession();
       setSession(null);
+      logAuthTrace("session", "Auth context cleared expired session", {
+        expiresAt: session.expiresAt,
+      });
     }
   }, [session]);
 

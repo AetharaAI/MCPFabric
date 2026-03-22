@@ -2,6 +2,16 @@
 
 ## 2026-03-21
 
+### Auth flow diagnostics
+- Added structured browser-side auth tracing across discovery, login start, callback parse, state validation, token exchange, session save, and logout.
+- Added a redacted auth trace viewer to the `/oauth/callback` page for live handshake debugging.
+- Kept sensitive values redacted in stored trace output.
+
+### SDK docs exposure
+- Exposed the Fabric A2A SDK surface in the frontend Docs page.
+- Added direct links to the PyPI package and backend SDK README.
+- Added frontend quick-start snippets for `pip install fabric-a2a` and API-key-backed client usage.
+
 ### Auth callback asset-path fix
 - Diagnosed blank `/oauth/callback` page as a static asset path issue, not an OAuth state issue.
 - Confirmed the live HTML was referencing `./assets/...`, causing deep-link routes to request `/oauth/assets/...`.
