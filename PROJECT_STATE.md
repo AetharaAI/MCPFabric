@@ -37,6 +37,7 @@ Live and verified:
 - current favicon asset: `favicon-DW9IsynA.ico`
 - current apple touch asset: `apple-touch-icon-CukQadbV.png`
 - latest branded homepage/landing update is deployed
+- prior auth callback failure root cause: Vite was emitting relative asset URLs (`./assets/...`), which broke deep-link routes like `/oauth/callback`
 
 ## Repo Alignment Status
 - local feature work was merged into `main`
