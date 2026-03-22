@@ -31,6 +31,8 @@
 - UI key/admin/operator surfaces talk to the live Fabric backend
 - header/footer/favicon/hero branding use curated MCPFabric assets
 - deep-link routes like `/oauth/callback` require root-relative asset URLs from the frontend build
+- auth handshake debugging now uses browser-side redacted trace logging visible on the callback page
+- frontend docs now expose the `fabric-a2a` SDK install path and usage links
 - remaining mock-heavy surfaces are `Observatory` and parts of `Registry`
 
 ## Operator Mechanics

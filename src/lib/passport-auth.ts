@@ -1,3 +1,5 @@
+import { clearAuthTrace, logAuthTrace } from "@/lib/auth-trace";
+
 export interface PassportDiscoveryDocument {
   issuer: string;
   authorization_endpoint: string;
@@ -52,7 +54,7 @@ function requireConfig(value: string | undefined, name: string): string {
 }
 
 export function getPassportConfig() {
-  return {
+  const config = {
     discoveryUrl: requireConfig(__PASSPORT_DISCOVERY_URL__, "PASSPORT_DISCOVERY_URL"),
     clientId: requireConfig(__PASSPORT_CLIENT_ID__, "PASSPORT_CLIENT_ID"),
     redirectUri: requireConfig(__PASSPORT_REDIRECT_URI__, "PASSPORT_REDIRECT_URI"),
@@ -63,15 +65,33 @@ export function getPassportConfig() {
     appBaseUrl: requireConfig(__APP_BASE_URL__, "APP_BASE_URL"),
     scope: (__PASSPORT_SCOPE__ || "openid profile email").trim(),
   };
+  logAuthTrace("config", "Resolved Passport configuration", {
+    discoveryUrl: config.discoveryUrl,
+    clientId: config.clientId,
+    redirectUri: config.redirectUri,
+    postLogoutRedirectUri: config.postLogoutRedirectUri,
+    appBaseUrl: config.appBaseUrl,
+    scope: config.scope,
+  });
+  return config;
 }
 
 export async function fetchPassportDiscovery(): Promise<PassportDiscoveryDocument> {
   const { discoveryUrl } = getPassportConfig();
+  logAuthTrace("discovery", "Fetching discovery document", { discoveryUrl });
   const response = await fetch(discoveryUrl);
   if (!response.ok) {
+    logAuthTrace("discovery", "Discovery fetch failed", { discoveryUrl, status: response.status });
     throw new Error(`Failed to load Passport discovery (${response.status})`);
   }
-  return response.json() as Promise<PassportDiscoveryDocument>;
+  const document = (await response.json()) as PassportDiscoveryDocument;
+  logAuthTrace("discovery", "Discovery fetch succeeded", {
+    issuer: document.issuer,
+    authorization_endpoint: document.authorization_endpoint,
+    token_endpoint: document.token_endpoint,
+    end_session_endpoint: document.end_session_endpoint,
+  });
+  return document;
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {
@@ -101,13 +121,21 @@ function randomString(length = 64): string {
 function readStoredCallback(): CallbackState | null {
   const raw = sessionStorage.getItem(CALLBACK_KEY);
   if (!raw) {
+    logAuthTrace("callback-state", "No stored callback state found");
     return null;
   }
 
   try {
-    return JSON.parse(raw) as CallbackState;
+    const parsed = JSON.parse(raw) as CallbackState;
+    logAuthTrace("callback-state", "Loaded stored callback state", {
+      hasState: Boolean(parsed.state),
+      hasVerifier: Boolean(parsed.verifier),
+      returnTo: parsed.returnTo,
+    });
+    return parsed;
   } catch {
     sessionStorage.removeItem(CALLBACK_KEY);
+    logAuthTrace("callback-state", "Stored callback state was invalid JSON and was cleared");
     return null;
   }
 }
@@ -128,6 +156,7 @@ function parseJwtUser(idToken?: string): PassportUser {
 export function loadPassportSession(): PassportSession | null {
   const raw = sessionStorage.getItem(SESSION_KEY);
   if (!raw) {
+    logAuthTrace("session", "No existing Passport session found");
     return null;
   }
 
@@ -135,25 +164,46 @@ export function loadPassportSession(): PassportSession | null {
     const session = JSON.parse(raw) as PassportSession;
     if (!session.expiresAt || session.expiresAt <= Date.now()) {
       sessionStorage.removeItem(SESSION_KEY);
+      logAuthTrace("session", "Stored Passport session was expired and cleared", {
+        expiresAt: session.expiresAt,
+      });
       return null;
     }
+    logAuthTrace("session", "Loaded existing Passport session", {
+      subject: session.user.sub,
+      preferred_username: session.user.preferred_username,
+      expiresAt: session.expiresAt,
+    });
     return session;
   } catch {
     sessionStorage.removeItem(SESSION_KEY);
+    logAuthTrace("session", "Stored Passport session was invalid JSON and was cleared");
     return null;
   }
 }
 
 export function savePassportSession(session: PassportSession) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  logAuthTrace("session", "Saved Passport session", {
+    subject: session.user.sub,
+    preferred_username: session.user.preferred_username,
+    expiresAt: session.expiresAt,
+    scope: session.scope,
+  });
 }
 
 export function clearPassportSession() {
   sessionStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(CALLBACK_KEY);
+  logAuthTrace("session", "Cleared Passport session and callback state");
 }
 
 export async function beginPassportLogin(returnTo = window.location.pathname + window.location.search) {
+  clearAuthTrace();
+  logAuthTrace("login", "Beginning Passport login", {
+    returnTo,
+    callbackPath: window.location.pathname,
+  });
   const discovery = await fetchPassportDiscovery();
   const config = getPassportConfig();
   const state = randomString(32);
@@ -168,6 +218,12 @@ export async function beginPassportLogin(returnTo = window.location.pathname + w
       returnTo,
     } satisfies CallbackState),
   );
+  logAuthTrace("login", "Stored PKCE callback state", {
+    stateLength: state.length,
+    verifierLength: verifier.length,
+    challengeLength: challenge.length,
+    returnTo,
+  });
 
   const url = new URL(discovery.authorization_endpoint);
   url.searchParams.set("client_id", config.clientId);
@@ -178,30 +234,62 @@ export async function beginPassportLogin(returnTo = window.location.pathname + w
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
 
+  logAuthTrace("login", "Redirecting browser to Passport authorize endpoint", {
+    authorizationEndpoint: discovery.authorization_endpoint,
+    searchParams: Object.fromEntries(url.searchParams.entries()),
+  });
+
   window.location.assign(url.toString());
 }
 
 export async function completePassportLogin(
   callbackUrl: string,
 ): Promise<{ session: PassportSession; returnTo: string }> {
+  logAuthTrace("callback", "Starting callback completion", {
+    callbackUrl,
+  });
   const discovery = await fetchPassportDiscovery();
   const config = getPassportConfig();
   const url = new URL(callbackUrl);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
+  const errorDescription = url.searchParams.get("error_description");
+
+  logAuthTrace("callback", "Parsed callback query parameters", {
+    hasCode: Boolean(code),
+    hasState: Boolean(state),
+    error,
+    errorDescription,
+  });
 
   if (error) {
-    throw new Error(url.searchParams.get("error_description") || error);
+    logAuthTrace("callback", "Passport returned callback error", {
+      error,
+      errorDescription,
+    });
+    throw new Error(errorDescription || error);
   }
   if (!code || !state) {
+    logAuthTrace("callback", "Missing required callback parameters", {
+      hasCode: Boolean(code),
+      hasState: Boolean(state),
+    });
     throw new Error("Missing code/state from Passport callback");
   }
 
   const callbackState = readStoredCallback();
   if (!callbackState || callbackState.state !== state) {
+    logAuthTrace("callback", "OAuth state validation failed", {
+      storedStatePresent: Boolean(callbackState?.state),
+      callbackStateMatch: callbackState?.state === state,
+    });
     throw new Error("Invalid or expired OAuth state");
   }
+
+  logAuthTrace("callback", "OAuth state validation succeeded", {
+    returnTo: callbackState.returnTo,
+  });
 
   const body = new URLSearchParams({
     grant_type: "authorization_code",
@@ -209,6 +297,13 @@ export async function completePassportLogin(
     code,
     redirect_uri: config.redirectUri,
     code_verifier: callbackState.verifier,
+  });
+
+  logAuthTrace("token", "Starting token exchange", {
+    tokenEndpoint: discovery.token_endpoint,
+    redirectUri: config.redirectUri,
+    grant_type: "authorization_code",
+    clientId: config.clientId,
   });
 
   const tokenResponse = await fetch(discovery.token_endpoint, {
@@ -221,6 +316,10 @@ export async function completePassportLogin(
 
   if (!tokenResponse.ok) {
     const text = await tokenResponse.text();
+    logAuthTrace("token", "Token exchange failed", {
+      status: tokenResponse.status,
+      body: text,
+    });
     throw new Error(`Passport token exchange failed (${tokenResponse.status}): ${text}`);
   }
 
@@ -232,6 +331,15 @@ export async function completePassportLogin(
     scope?: string;
     id_token?: string;
   };
+
+  logAuthTrace("token", "Token exchange succeeded", {
+    tokenType: tokenPayload.token_type,
+    expiresIn: tokenPayload.expires_in,
+    hasAccessToken: Boolean(tokenPayload.access_token),
+    hasRefreshToken: Boolean(tokenPayload.refresh_token),
+    hasIdToken: Boolean(tokenPayload.id_token),
+    scope: tokenPayload.scope,
+  });
 
   const session: PassportSession = {
     accessToken: tokenPayload.access_token,
@@ -245,6 +353,10 @@ export async function completePassportLogin(
 
   savePassportSession(session);
   sessionStorage.removeItem(CALLBACK_KEY);
+  logAuthTrace("callback", "Callback completed and session stored", {
+    returnTo: callbackState.returnTo || "/",
+    subject: session.user.sub,
+  });
 
   return {
     session,
@@ -255,9 +367,14 @@ export async function completePassportLogin(
 export async function beginPassportLogout(session: PassportSession | null) {
   const discovery = await fetchPassportDiscovery();
   const config = getPassportConfig();
+  logAuthTrace("logout", "Beginning Passport logout", {
+    hasSession: Boolean(session),
+    endSessionEndpoint: discovery.end_session_endpoint,
+  });
   clearPassportSession();
 
   if (!discovery.end_session_endpoint) {
+    logAuthTrace("logout", "Passport discovery had no logout endpoint; redirecting to app root");
     window.location.assign(config.postLogoutRedirectUri);
     return;
   }
@@ -268,6 +385,12 @@ export async function beginPassportLogout(session: PassportSession | null) {
   if (session?.idToken) {
     url.searchParams.set("id_token_hint", session.idToken);
   }
+
+  logAuthTrace("logout", "Redirecting browser to Passport logout endpoint", {
+    logoutEndpoint: discovery.end_session_endpoint,
+    postLogoutRedirectUri: config.postLogoutRedirectUri,
+    hasIdTokenHint: Boolean(session?.idToken),
+  });
 
   window.location.assign(url.toString());
 }
