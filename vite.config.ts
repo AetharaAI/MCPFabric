@@ -6,9 +6,10 @@ import { inspectAttr } from 'kimi-plugin-inspect-react'
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const base = env.VITE_APP_BASE_PATH || env.APP_BASE_PATH || "/";
 
   return {
-    base: './',
+    base,
     plugins: [
       ...(command === "serve" ? [inspectAttr()] : []),
       react(),

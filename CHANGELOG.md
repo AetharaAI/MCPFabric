@@ -2,6 +2,12 @@
 
 ## 2026-03-21
 
+### Auth callback asset-path fix
+- Diagnosed blank `/oauth/callback` page as a static asset path issue, not an OAuth state issue.
+- Confirmed the live HTML was referencing `./assets/...`, causing deep-link routes to request `/oauth/assets/...`.
+- Confirmed nginx returned `text/html` for the misresolved JS path because SPA fallback served `index.html`.
+- Updated the Vite base path to root-relative output so deep-link routes load JS/CSS from `/assets/...`.
+
 ### Repo alignment
 - Merged the MCPFabric working branch into `main`.
 - Preserved the `logos` commit history while merging the Codex live-ops/auth/frontend work.

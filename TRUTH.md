@@ -30,6 +30,7 @@
 - API key creation/management in the UI requires sign-in
 - UI key/admin/operator surfaces talk to the live Fabric backend
 - header/footer/favicon/hero branding use curated MCPFabric assets
+- deep-link routes like `/oauth/callback` require root-relative asset URLs from the frontend build
 - remaining mock-heavy surfaces are `Observatory` and parts of `Registry`
 
 ## Operator Mechanics
